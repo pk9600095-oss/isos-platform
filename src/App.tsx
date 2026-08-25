@@ -1,280 +1,171 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Activity, Zap, Shield, CheckCircle2 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
-  const [selectedSite, setSelectedSite] = useState('11111111-1111-1111-1111-111111111111');
-  const [sites, setSites] = useState<any[]>([]);
-  const [readings, setReadings] = useState<any[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Scene Refs
+  const curtainLeftRef = useRef<HTMLDivElement>(null);
+  const curtainRightRef = useRef<HTMLDivElement>(null);
+  const curtainTextRef = useRef<HTMLDivElement>(null);
+  const moonRef = useRef<HTMLDivElement>(null);
+  const spaceTextRef = useRef<HTMLDivElement>(null);
+  const horizonBgRef = useRef<HTMLDivElement>(null);
+  const treeIslandRef = useRef<HTMLDivElement>(null);
+  const islandTextRef = useRef<HTMLDivElement>(null);
+  const ladderSceneRef = useRef<HTMLDivElement>(null);
 
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<SVGSVGElement>(null);
-  const gridRef = useRef<SVGGElement>(null);
-  const linesRef = useRef<SVGPathElement>(null);
-  const logoRef = useRef<SVGTextElement>(null);
-  const nodesRef = useRef<SVGGElement>(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      const { data: sitesData } = await supabase.from('sites').select('*');
-      if (sitesData) setSites(sitesData);
-      
-      const { data: readingsData } = await supabase.from('readings').select('*');
-      if (readingsData) setReadings(readingsData);
-    }
-    fetchData();
-  }, []);
+  const [activeOverlay, setActiveOverlay] = useState(false);
 
   useEffect(() => {
-    if (activeTab !== 'home') return;
-
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: sectionRef.current,
+          trigger: containerRef.current,
           start: 'top top',
-          end: '+=2500',
+          end: '+=4500',
           pin: true,
-          scrub: 1
+          scrub: 1.5,
         }
       });
 
-      tl.fromTo(panelRef.current, { scale: 0.2, opacity: 0.3 }, { scale: 1, opacity: 1, duration: 2 })
-        .to(gridRef.current, { opacity: 1, scale: 1.1, duration: 2 })
-        .to(linesRef.current, { strokeDashoffset: 0, opacity: 1, duration: 3 })
-        .to(logoRef.current, { opacity: 1, scale: 1.2, duration: 2 })
-        .to(nodesRef.current, { opacity: 1, stagger: 0.5, duration: 2 });
-    }, sectionRef);
+      // --- ACT I: THE CURTAIN REVEAL (Cartier 00:00 - 00:01) ---
+      tl.to(curtainTextRef.current, { opacity: 0, scale: 0.95, duration: 1 })
+        .to(curtainLeftRef.current, { xPercent: -105, ease: 'power2.inOut', duration: 3 }, "-=0.5")
+        .to(curtainRightRef.current, { xPercent: 105, ease: 'power2.inOut', duration: 3 }, "-=3")
+
+      // --- ACT II: CELESTIAL NIGHT & MOON (Cartier 00:02 - 00:08) ---
+        .fromTo(moonRef.current, { scale: 1.8, y: 50, opacity: 0 }, { scale: 1, y: 0, opacity: 1, duration: 3 }, "-=1.5")
+        .fromTo(spaceTextRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 2 }, "-=1")
+
+      // --- ACT III: DAWN HORIZON & ETHEREAL LAKE (Cartier 00:09 - 00:15) ---
+        .to([moonRef.current, spaceTextRef.current], { opacity: 0, y: -40, duration: 2 })
+        .to(horizonBgRef.current, { opacity: 1, duration: 3.5 }, "-=1.5")
+        .fromTo(treeIslandRef.current, { scale: 0.7, opacity: 0, y: 40 }, { scale: 1, opacity: 1, y: 0, duration: 3 }, "-=2")
+        .fromTo(islandTextRef.current, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 2 }, "-=1")
+
+      // --- ACT IV: CLOUD ASCENSION & GOLDEN LADDER (Cartier 00:17 - 00:23) ---
+        .to([treeIslandRef.current, islandTextRef.current], { opacity: 0, duration: 2 })
+        .to(ladderSceneRef.current, { opacity: 1, y: 0, duration: 3 }, "-=1");
+
+    }, containerRef);
 
     return () => ctx.revert();
-  }, [activeTab]);
-
-  const activeReading = readings.find(r => r.site_id === selectedSite) || {
-    demand_kw: 185.4,
-    tariff_rate: 7.20,
-    solar_output_kw: 92.0,
-    grid_status: 'PEAK_LOAD',
-    recommendation_text: 'High morning peak detected. Discharge battery storage to offset peak tariff rate of ₹7.20/kWh.'
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#0B1F2A] text-[#F2F0EA] font-sans flex flex-col">
-      <header className="border-b border-[#C9A24B]/20 bg-[#0B1F2A]/90 backdrop-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('home')}>
-          <div className="w-8 h-8 rounded bg-[#C9A24B] text-[#0B1F2A] font-black flex items-center justify-center text-xl">Ί</div>
-          <span className="text-xl font-bold tracking-widest text-[#F2F0EA]">ΊΣΟΣ</span>
-          <span className="text-xs uppercase px-2 py-0.5 border border-[#C9A24B]/40 text-[#C9A24B] rounded">Enterprise</span>
-        </div>
-        
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
-          <button onClick={() => setActiveTab('home')} className={activeTab === 'home' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>Overview</button>
-          <button onClick={() => setActiveTab('product')} className={activeTab === 'product' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>What is ΊΣΟΣ</button>
-          <button onClick={() => setActiveTab('dashboard')} className={activeTab === 'dashboard' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>Live Telemetry</button>
-          <button onClick={() => setActiveTab('pricing')} className={activeTab === 'pricing' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>Deployment & Pricing</button>
-          <button onClick={() => setActiveTab('faq')} className={activeTab === 'faq' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>FAQ</button>
-          <button onClick={() => setActiveTab('about')} className={activeTab === 'about' ? 'text-[#C9A24B]' : 'hover:text-[#C9A24B]'}>Nothing Creations</button>
-        </nav>
-
-        <button onClick={() => setActiveTab('signup')} className="px-5 py-2 bg-[#C9A24B] text-[#0B1F2A] font-semibold rounded-lg hover:bg-[#b5903f]">
-          Access Portal
+    <div className="bg-[#0A0C10] text-[#E5DCD3] font-serif selection:bg-[#C5A059] selection:text-[#0A0C10] overflow-x-hidden min-h-screen">
+      
+      {/* Minimal Luxury Navigation */}
+      <header className="fixed top-0 left-0 w-full z-50 px-8 py-6 flex justify-between items-center mix-blend-difference">
+        <span className="text-xs uppercase tracking-[0.3em] font-sans text-[#D4C3B3]">Ί Σ Ο Σ</span>
+        <button 
+          onClick={() => setActiveOverlay(!activeOverlay)}
+          className="text-[11px] uppercase tracking-[0.25em] font-sans hover:text-[#C5A059] transition-colors"
+        >
+          {activeOverlay ? "Close Index" : "Overview"}
         </button>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6">
-        {activeTab === 'home' && (
-          <div ref={sectionRef} className="h-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#07141C] border border-[#C9A24B]/20 rounded-3xl">
-            <div className="absolute top-8 text-center space-y-2 z-10">
-              <span className="text-xs uppercase tracking-widest text-[#C9A24B] font-mono">Scroll To Explore Grid Sync</span>
-              <h1 className="text-3xl font-extrabold">ΊΣΟΣ Autonomous Energy Control</h1>
-            </div>
+      {/* Main Pinned Canvas Container */}
+      <div ref={containerRef} className="h-screen w-full relative overflow-hidden flex items-center justify-center">
 
-            <svg className="w-full h-96 max-w-3xl" viewBox="0 0 800 400">
-              <rect ref={panelRef as any} x="350" y="150" width="100" height="100" fill="none" stroke="#C9A24B" strokeWidth="2" className="origin-center" />
-              
-              <g ref={gridRef} className="opacity-0">
-                <rect x="200" y="150" width="100" height="100" fill="none" stroke="#C9A24B" strokeWidth="1" />
-                <rect x="500" y="150" width="100" height="100" fill="none" stroke="#C9A24B" strokeWidth="1" />
-              </g>
+        {/* --- STAGE 1: CURTAINS (Silk Warm Taupe) --- */}
+        <div ref={curtainLeftRef} className="absolute inset-y-0 left-0 w-1/2 bg-[#211C18] border-r border-[#3A322B] z-40 flex items-center justify-end shadow-2xl">
+          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#382F28] via-[#1E1915] to-[#120F0D] opacity-90" />
+        </div>
+        <div ref={curtainRightRef} className="absolute inset-y-0 right-0 w-1/2 bg-[#211C18] border-l border-[#3A322B] z-40 flex items-center justify-start shadow-2xl">
+          <div className="w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#382F28] via-[#1E1915] to-[#120F0D] opacity-90" />
+        </div>
+        
+        <div ref={curtainTextRef} className="absolute z-50 text-center space-y-4 px-4">
+          <p className="text-xs italic tracking-[0.3em] font-serif text-[#C5A059]">ΊΣΟΣ presents</p>
+          <h1 className="text-4xl md:text-6xl font-light tracking-[0.25em] uppercase text-[#F2EBE4]">Grid & Wonders</h1>
+          <p className="text-[10px] tracking-[0.4em] font-sans text-[#A39587] uppercase pt-8">Scroll to Reveal</p>
+        </div>
 
-              <path ref={linesRef} d="M 100 350 Q 400 300 400 200 T 700 350" fill="none" stroke="#C9A24B" strokeWidth="3" strokeDasharray="500" strokeDashoffset="500" className="opacity-0" />
+        {/* --- STAGE 2: CELESTIAL MOON & DEEP SPACE --- */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#141923_0%,_#07090D_100%)] z-10 flex flex-col items-center justify-center">
+          {/* Subtle Starfield backdrop */}
+          <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-10" />
 
-              <text ref={logoRef} x="400" y="210" fill="#F2F0EA" textAnchor="middle" className="text-5xl font-black tracking-widest opacity-0">ΊΣΟΣ</text>
-
-              <g ref={nodesRef} className="opacity-0">
-                <circle cx="250" cy="100" r="10" fill="#C9A24B" />
-                <text x="250" y="80" fill="#F2F0EA" textAnchor="middle" className="text-xs font-mono">Adyar Node</text>
-                
-                <circle cx="550" cy="100" r="10" fill="#C9A24B" />
-                <text x="550" y="80" fill="#F2F0EA" textAnchor="middle" className="text-xs font-mono">OMR Node</text>
-              </g>
-            </svg>
+          {/* Luminous Moon Orb */}
+          <div ref={moonRef} className="w-64 h-64 md:w-80 md:h-80 rounded-full bg-[radial-gradient(circle_at_30%_30%,_#FFF9E6_0%,_#D0C2A5_40%,_#4A4238_85%,_#1A1714_100%)] shadow-[0_0_80px_rgba(245,230,200,0.15)] relative">
+            <div className="absolute inset-0 rounded-full mix-blend-overlay opacity-30 bg-[radial-gradient(circle,_#000_20%,transparent_80%)]" />
           </div>
-        )}
 
-        {activeTab === 'product' && (
-          <div className="space-y-12 py-6">
-            <h2 className="text-3xl font-bold">What is ΊΣΟΣ?</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50 space-y-3">
-                <Zap className="text-[#C9A24B] w-8 h-8" />
-                <h3 className="text-xl font-bold">Predictive Load Curves</h3>
-                <p className="text-sm text-slate-400">Models hourly demand spikes across facilities using historical patterns.</p>
-              </div>
-              <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50 space-y-3">
-                <Activity className="text-[#C9A24B] w-8 h-8" />
-                <h3 className="text-xl font-bold">Dynamic Tariff Optimization</h3>
-                <p className="text-sm text-slate-400">Automatically switches battery storage when local tariffs peak.</p>
-              </div>
-              <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50 space-y-3">
-                <Shield className="text-[#C9A24B] w-8 h-8" />
-                <h3 className="text-xl font-bold">Autonomous Grid Balancing</h3>
-                <p className="text-sm text-slate-400">Keeps regional transformer nodes balanced to prevent brownouts.</p>
-              </div>
-            </div>
+          <div ref={spaceTextRef} className="absolute bottom-20 text-center max-w-lg px-6 space-y-3">
+            <p className="text-sm md:text-base italic text-[#D8C9B9] font-serif font-light leading-relaxed">
+              "Playing with energy flows, crossing the border between the physical microgrid and the invisible dynamics of time."
+            </p>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'dashboard' && (
-          <div className="space-y-8 py-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-              <div>
-                <h2 className="text-2xl font-bold">Chennai Regional Telemetry</h2>
-                <p className="text-sm text-slate-400">Real-time load profiles and live recommendation engine.</p>
-              </div>
-              <select 
-                value={selectedSite} 
-                onChange={(e) => setSelectedSite(e.target.value)}
-                className="bg-[#07141C] border border-[#C9A24B]/40 rounded-lg px-4 py-2 text-[#F2F0EA]"
-              >
-                {sites.map(site => (
-                  <option key={site.id} value={site.id}>{site.name} ({site.locality})</option>
-                ))}
-              </select>
-            </div>
+        {/* --- STAGE 3: ETHEREAL LAKE & SQUARE TREE ISLAND --- */}
+        <div ref={horizonBgRef} className="absolute inset-0 z-20 opacity-0 bg-[linear-gradient(to_bottom,_#A3B8C8_0%,_#D6C5B3_45%,_#EBE4DC_70%,_#8E9EAA_100%)] flex items-center justify-center">
+          
+          {/* Horizon Water Line */}
+          <div className="absolute bottom-0 w-full h-1/2 bg-[linear-gradient(to_bottom,_rgba(255,255,255,0.2)_0%,_#7A8B99_100%)] backdrop-blur-[1px]" />
 
-            <div className="grid md:grid-cols-4 gap-6">
-              <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40">
-                <span className="text-xs text-slate-400 uppercase font-mono">Current Demand</span>
-                <div className="text-3xl font-extrabold text-[#C9A24B] mt-2">{activeReading.demand_kw} <span className="text-sm font-normal text-slate-300">kW</span></div>
-              </div>
-              <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40">
-                <span className="text-xs text-slate-400 uppercase font-mono">Live Tariff Rate</span>
-                <div className="text-3xl font-extrabold text-[#F2F0EA] mt-2">₹{activeReading.tariff_rate} <span className="text-sm font-normal text-slate-300">/kWh</span></div>
-              </div>
-              <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40">
-                <span className="text-xs text-slate-400 uppercase font-mono">Solar Generation</span>
-                <div className="text-3xl font-extrabold text-emerald-400 mt-2">{activeReading.solar_output_kw} <span className="text-sm font-normal text-slate-300">kW</span></div>
-              </div>
-              <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/40">
-                <span className="text-xs text-slate-400 uppercase font-mono">Grid State</span>
-                <div className="text-xl font-bold text-[#C9A24B] mt-3 uppercase tracking-wider">{activeReading.grid_status}</div>
-              </div>
+          {/* Square Sculptural Tree */}
+          <div ref={treeIslandRef} className="relative z-30 flex flex-col items-center">
+            <div className="w-44 h-44 md:w-56 md:h-56 bg-[#735A43] border border-[#C5A059]/40 rounded-sm shadow-2xl relative overflow-hidden flex items-center justify-center">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#C5A059_0%,_#3D2E22_100%)] opacity-80" />
+              <span className="relative z-10 text-6xl font-serif text-[#F2EBE4] italic">ΊΣ</span>
             </div>
-
-            <div className="p-6 rounded-xl border border-[#C9A24B]/30 bg-[#07141C] space-y-3">
-              <span className="text-xs font-mono uppercase text-[#C9A24B]">Active System Advisory</span>
-              <p className="text-lg font-medium">{activeReading.recommendation_text}</p>
-            </div>
+            {/* Reflection */}
+            <div className="w-44 h-24 md:w-56 md:h-28 bg-[#735A43]/20 blur-sm transform scale-y-[-1] opacity-40 mt-1" />
           </div>
-        )}
 
-        {activeTab === 'pricing' && (
-          <div className="space-y-12 py-6">
-            <h2 className="text-3xl font-bold text-center">Platform Plans & Tiers</h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="p-8 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-6">
-                <h3 className="text-xl font-bold">Residential RWA</h3>
-                <div className="text-4xl font-extrabold">₹4,999 <span className="text-sm font-normal text-slate-400">/ mo</span></div>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C9A24B]" /> Up to 500 kW capacity</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C9A24B]" /> Community Solar Balance</li>
-                </ul>
-              </div>
-              <div className="p-8 rounded-2xl border border-[#C9A24B] bg-slate-900/90 space-y-6">
-                <h3 className="text-xl font-bold">Commercial Campus</h3>
-                <div className="text-4xl font-extrabold">₹18,999 <span className="text-sm font-normal text-slate-400">/ mo</span></div>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C9A24B]" /> Up to 2,000 kW capacity</li>
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C9A24B]" /> Real-time Supabase Telemetry</li>
-                </ul>
-              </div>
-              <div className="p-8 rounded-2xl border border-slate-800 bg-slate-900/40 space-y-6">
-                <h3 className="text-xl font-bold">Industrial Node</h3>
-                <div className="text-4xl font-extrabold">Custom</div>
-                <ul className="space-y-3 text-sm text-slate-300">
-                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C9A24B]" /> Multi-site Transformer Relay</li>
-                </ul>
-              </div>
-            </div>
+          <div ref={islandTextRef} className="absolute left-10 md:left-24 top-1/3 z-30 max-w-sm space-y-3">
+            <span className="text-xs uppercase tracking-[0.3em] font-sans text-[#4A3E35]">The Equilibrium</span>
+            <h2 className="text-3xl font-light italic text-[#2A221C]">When energy architecture takes form into the sublime.</h2>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'signup' && (
-          <div className="max-w-md mx-auto py-12 space-y-6">
-            <h2 className="text-2xl font-bold text-center">Access ΊΣΟΣ Platform</h2>
-            <form className="space-y-4 bg-slate-900/50 p-6 rounded-xl border border-slate-800" onSubmit={(e) => e.preventDefault()}>
-              <div>
-                <label className="text-xs uppercase font-mono text-slate-400">Email Address</label>
-                <input type="email" placeholder="name@organization.com" className="w-full mt-1 px-4 py-2 bg-[#07141C] border border-slate-700 rounded-lg text-sm text-[#F2F0EA]" />
-              </div>
-              <div>
-                <label className="text-xs uppercase font-mono text-slate-400">Password</label>
-                <input type="password" placeholder="••••••••" className="w-full mt-1 px-4 py-2 bg-[#07141C] border border-slate-700 rounded-lg text-sm text-[#F2F0EA]" />
-              </div>
-              <button className="w-full py-3 bg-[#C9A24B] text-[#0B1F2A] font-bold rounded-lg hover:bg-[#b5903f]">Sign In / Register</button>
-            </form>
+        {/* --- STAGE 4: SKY ASCENSION & GOLDEN LADDER --- */}
+        <div ref={ladderSceneRef} className="absolute inset-0 z-30 opacity-0 translate-y-12 bg-[linear-gradient(to_bottom,_#8FA5B5_0%,_#C9D6E0_50%,_#F0F4F7_100%)] flex items-center justify-center">
+          
+          {/* Ethereal Floating Ladder / Ring Frame */}
+          <div className="w-72 h-[450px] border-4 border-[#C5A059] rounded-t-full opacity-80 flex flex-col justify-between py-8 items-center shadow-[0_0_50px_rgba(197,160,89,0.2)]">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="w-full h-1 bg-[#C5A059]/60" />
+            ))}
           </div>
-        )}
 
-        {activeTab === 'faq' && (
-          <div className="max-w-3xl mx-auto py-6 space-y-6">
-            <h2 className="text-3xl font-bold border-b border-slate-800 pb-4">Frequently Asked Questions</h2>
-            <div className="space-y-4">
-              <div className="p-5 rounded-lg border border-slate-800 bg-slate-900/40 space-y-2">
-                <h3 className="font-bold">How does ΊΣΟΣ process local grid data?</h3>
-                <p className="text-sm text-slate-400">Telemetry is gathered from site meters and synced to Supabase every 15 minutes.</p>
-              </div>
-              <div className="p-5 rounded-lg border border-slate-800 bg-slate-900/40 space-y-2">
-                <h3 className="font-bold">Are the Chennai site locations live?</h3>
-                <p className="text-sm text-slate-400">Yes, ΊΣΟΣ models real Chennai localities including Adyar, OMR, Anna Nagar, Oragadam, and T. Nagar.</p>
-              </div>
-            </div>
+          <div className="absolute left-8 md:left-20 bottom-1/4 max-w-md space-y-4 text-[#1C252C]">
+            <h3 className="text-2xl italic font-serif">Reflection of Autonomous Grid</h3>
+            <p className="text-xs font-sans tracking-wider leading-relaxed text-[#4A5763]">
+              Between demand forecasting and real-time node balancing, ΊΣΟΣ shapes power with understated perfection.
+            </p>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'about' && (
-          <div className="max-w-3xl mx-auto py-8 space-y-8">
-            <div className="border-b border-[#C9A24B]/30 pb-6 space-y-2">
-              <span className="text-xs uppercase tracking-widest text-[#C9A24B] font-mono">Brand & Origins</span>
-              <h2 className="text-4xl font-extrabold">Nothing Creations</h2>
-              <p className="text-lg text-slate-300 italic">"Engineering clarity from zero."</p>
-            </div>
-            <div className="p-8 rounded-2xl border border-slate-800 bg-slate-900/60 space-y-6">
+      </div>
+
+      {/* Slide-out Index Modal for Enterprise Telemetry Details */}
+      {activeOverlay && (
+        <div className="fixed inset-0 z-50 bg-[#0A0C10]/95 backdrop-blur-md p-10 flex flex-col justify-between text-[#E5DCD3]">
+          <div className="max-w-4xl mx-auto w-full space-y-8 pt-12">
+            <h2 className="text-3xl font-light tracking-widest italic border-b border-[#3A322B] pb-4">Telemetric Index</h2>
+            <div className="grid md:grid-cols-2 gap-8 font-sans text-xs tracking-wider">
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-[#F2F0EA]">Prasannakumar V</h3>
-                <p className="text-xs font-mono text-[#C9A24B]">Founder & Lead Systems Architect</p>
-                <p className="text-xs text-slate-400">Department of Computer Science (Cloud Computing), SRM Institute of Science and Technology, Ramapuram Campus</p>
+                <span className="text-[#C5A059] uppercase">Node 01 — Adyar Sector</span>
+                <p className="text-slate-400">Peak Demand: 185.4 kW | Grid Status: Optimal</p>
               </div>
-              <blockquote className="border-l-2 border-[#C9A24B] pl-4 text-slate-300 italic">
-                "Energy isn't just power flowing through a grid; it's data waiting for direction."
-              </blockquote>
+              <div className="space-y-2">
+                <span className="text-[#C5A059] uppercase">Node 02 — OMR Tech Corridor</span>
+                <p className="text-slate-400">Solar Generation Offset: 92.0 kW</p>
+              </div>
             </div>
           </div>
-        )}
-      </main>
+          <p className="text-center text-[10px] uppercase font-sans tracking-[0.3em] text-slate-500">© 2026 ΊΣΟΣ by Nothing Creations</p>
+        </div>
+      )}
 
-      <footer className="border-t border-slate-800 py-6 px-6 text-center text-xs text-slate-500">
-        © 2026 ΊΣΟΣ Platform by Nothing Creations. Built for Yuva Yodha Energy Tech Hackathon.
-      </footer>
     </div>
   );
 }
